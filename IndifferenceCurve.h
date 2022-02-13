@@ -1,13 +1,28 @@
 #pragma once
-
-#include "Point.h"
-#include "File.h"
-#include "Good.h"
+#include <iostream>
 #include <vector>
 
 class IndifferenceCurve
 {
-	std::vector<Point> points;
+public:
+	class Good
+	{
+		const unsigned int m_price;
+		const float m_value;
+		const float m_deltaValue;
+
+		const Good& operator = (const Good& g) = delete;
+	public:
+		Good(unsigned int price, float value, float deltaValue) : m_price(price), m_value(value), m_deltaValue(deltaValue) {}
+		Good(const Good& g) : m_price(g.m_price), m_value(g.m_value), m_deltaValue(g.m_deltaValue) {}
+
+
+		float valueForIndex(unsigned int index) const;
+		unsigned int price() const;
+	};
+
+private:
+	std::vector<std::pair<unsigned int, unsigned int>> points;
 
 	const Good good1;
 	const Good good2;
@@ -31,11 +46,23 @@ public:
 		calculate();
 	}
 
-	std::vector<Point>& getPoints();
+	std::vector<std::pair<unsigned int, unsigned int>>& getPoints();
 	friend std::ostream& operator << (std::ostream& os, const IndifferenceCurve& c);
 };
 
+inline float IndifferenceCurve::Good::valueForIndex(unsigned int index) const
+{
+	float value = m_value - index * m_deltaValue;
+	return value < 0 ? 0 : value;
+}
 
-inline std::vector<Point>& IndifferenceCurve::getPoints() {
+inline unsigned int IndifferenceCurve::Good::price() const
+{
+	return m_price;
+}
+
+inline std::vector<std::pair<unsigned int, unsigned int>>& IndifferenceCurve::getPoints() {
 	return points;
 }
+
+

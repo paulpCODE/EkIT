@@ -22,7 +22,8 @@ namespace Files {
 		};
 	};
 
-	class iFile : public std::ifstream
+	//Input file
+	/*class iFile : public std::ifstream
 	{
 
 		iFile(const iFile&) = delete;
@@ -49,7 +50,7 @@ namespace Files {
 			
 			return data;
 		}
-	};
+	};*/
 
 
 	template<class T>

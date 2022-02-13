@@ -1,13 +1,13 @@
 ﻿#include <iostream>
 #include "IndifferenceCurve.h"
 #include "DemandCurve.h"
+#include "File.h"
 
 int main()
 {
-    Good compiler(250, 50.f, 0.2f);
-    Good ide(350, 70.f, 0.4f);
+    std::vector<unsigned int> maxPrices = { 10, 20, 12, 32, 24, 34, 23, 23, 24, 43, 23, 43, 23, 31, 35, 34, 12, 54, 45, 34, 23, 34 };
 
-    DemandCurve c(ide.price() + 200, ide.price() - 200, ide.price(), 0.005, 2, 5);
+    DemandCurve c(maxPrices);
     std::cout << c;
     Files::writeToOutputTxt(c);
 }
