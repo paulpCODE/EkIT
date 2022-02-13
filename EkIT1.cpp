@@ -1,13 +1,46 @@
 ﻿#include <iostream>
-#include "IndifferenceCurve.h"
+#include <random>
 #include "DemandCurve.h"
+#include "SupplyCurve.h"
 #include "File.h"
+
+
+void getRandomIntInRange(int rangeFrom, int rangeTo, unsigned int amountOfNumbers, std::vector<unsigned int>& outVector)
+{
+    if (rangeFrom > rangeTo) {
+        return;
+    }
+
+    std::random_device random_device;
+    std::mt19937 random_engine(random_device());
+    std::uniform_int_distribution<int> distribution(rangeFrom, rangeTo);
+
+    for (size_t i = 0; i < amountOfNumbers; ++i)
+    {
+        outVector.push_back(unsigned int(distribution(random_engine)));
+    }
+}
+
 
 int main()
 {
-    std::vector<unsigned int> maxPrices = { 10, 20, 12, 32, 24, 34, 23, 23, 24, 43, 23, 43, 23, 31, 35, 34, 12, 54, 45, 34, 23, 34 };
+    std::vector<unsigned int> pricesForDemand;
+    std::vector<unsigned int> pricesForSupply;
 
-    DemandCurve c(maxPrices);
-    std::cout << c;
-    Files::writeToOutputTxt(c);
+    getRandomIntInRange(50, 70, 26, pricesForDemand);
+    getRandomIntInRange(70, 100, 10, pricesForDemand);
+    getRandomIntInRange(100, 125, 4, pricesForDemand);
+
+    getRandomIntInRange(50, 70, 2, pricesForSupply);
+    getRandomIntInRange(70, 100, 13, pricesForSupply);
+    getRandomIntInRange(100, 125, 25, pricesForSupply);
+    
+
+    DemandCurve dc(pricesForDemand);
+    SupplyCurve sc(pricesForSupply);
+
+    std::cout << dc;
+    Files::oFile("tempfiles\\demandCurve.txt") << dc;
+    std::cout << sc;
+    Files::oFile("tempfiles\\supplyCurve.txt") << sc;
 }

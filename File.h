@@ -52,11 +52,5 @@ namespace Files {
 		}
 	};*/
 
-
-	template<class T>
-	void writeToOutputTxt(const T& data) {
-		oFile("output.txt") << data;
-	}
-
 }
 
