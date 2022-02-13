@@ -14,6 +14,8 @@ resultFileName = 'SourceCodeFile.txt'
 with open(resultFileName, "w") as myfile:
     myfile.truncate()
 
+FlushToFile("EkIT1.cpp")
+
 thisdir = os.getcwd()
 for r, d, f in os.walk(thisdir):
     for file in f:
@@ -23,6 +25,7 @@ for r, d, f in os.walk(thisdir):
             cppFileName = tempFileBegin + ".cpp"
             FlushToFile(file)
             FlushToFile(cppFileName)
+
 
 
 
