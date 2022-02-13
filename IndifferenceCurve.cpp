@@ -21,7 +21,7 @@ void IndifferenceCurve::calculatePoints(const std::vector<float>& valuesSumsGood
     for (int i = 0; i < valuesSumsGood1.size() - 1; i++) {
         for (int j = 0; j < valuesSumsGood2.size() - 1; j++) {
             if (staticValue > valuesSumsGood1[i] + valuesSumsGood2[j] - epsilon && staticValue < valuesSumsGood1[i] + valuesSumsGood2[j] + epsilon) {
-                points.push_back(Point(i, j));
+                points.push_back(std::make_pair(i, j));
             }
         }
     }
@@ -40,12 +40,13 @@ void IndifferenceCurve::calculate()
 
 std::ostream& operator<<(std::ostream& os, const IndifferenceCurve& c)
 {
-    os << "====================" << c.budget << "====================" << std::endl;
-    os << "MaxGoods1: " << c.maxGoods1 << " MaxGoods2: " << c.maxGoods2 << std::endl;
-    os << "BUDGET LINE x;y" << std::endl << Point(c.maxGoods1, 0) << std::endl << Point(0, c.maxGoods2) << std::endl;
-    os << "CURVE x;y" << std::endl;
+    os << "Budget Line maxGoods1;0 (x;y)" << std::endl 
+        << c.maxGoods1 << ";0" << std::endl
+        << "Budget Line 0;maxGoods2 (x;y)" << std::endl
+        << "0;" << c.maxGoods2 << std::endl;
+    os << "Indifference Curve Good1;Good2 (x;y)" << std::endl;
     for (auto& el : c.points) {
-        os << el << std::endl;
+        os << el.first << ";" << el.second << std::endl;
     }
     return os;
 }
