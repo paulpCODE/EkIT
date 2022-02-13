@@ -1,0 +1,258 @@
+
+---------------DemandCurve.h--------------- 
+#pragma once
+#include <vector>
+#include "Point.h"
+
+class DemandCurve
+{
+	std::vector<Point> points;
+	const int m_maxParam;
+	const int m_minParam;
+	const int m_epsilon;
+	const float m_demandCoefficientDelta;
+
+
+	void calculate();
+public:
+	DemandCurve(int maxParam, int minParam, float demandCoefficientDelta = 0.1f, int epsilon = 1);
+
+	friend std::ostream& operator << (std::ostream& os, const DemandCurve& dc);
+};
+---------------DemandCurve.cpp--------------- 
+#include "DemandCurve.h"
+
+void DemandCurve::calculate()
+{
+	float demandCoefficient = 0.f;
+	float x = m_demandCoefficientDelta;
+	for (int y = m_maxParam - 1; y > m_minParam; y -= m_epsilon) {
+		demandCoefficient = (m_maxParam - y) * m_demandCoefficientDelta;
+		x = x + demandCoefficient;
+		points.push_back(Point(x, y));
+	}
+}
+
+DemandCurve::DemandCurve(int maxParam, int minParam, float demandCoefficientDelta, int epsilon) :
+	m_maxParam(maxParam), m_minParam(minParam),
+	m_demandCoefficientDelta(demandCoefficientDelta),
+	m_epsilon(epsilon) {
+	calculate();
+}
+
+std::ostream& operator << (std::ostream& os, const DemandCurve& dc) {
+	os << "DemandCurve from: " << dc.m_maxParam << " to: " << dc.m_minParam << std::endl;
+	os << "Delta: " << dc.m_demandCoefficientDelta << " Epsilon: " << dc.m_epsilon << std::endl;
+	os << "CURVE x;y" << std::endl;
+	for (auto& el : dc.points) {
+		os << el << std::endl;
+	}
+	return os;
+}
+
+---------------File.h--------------- 
+#pragma once
+#include <iostream>
+#include <fstream>
+#include <string>
+
+namespace Files {
+
+	class oFile : public std::ofstream
+	{
+		oFile(const oFile&) = delete;
+		const oFile& operator = (const oFile& of) = delete;
+
+	public:
+		oFile(const std::string& path) : std::ofstream(path) {
+			if (!is_open()) {
+				std::cout << "FILE DOES NOT OPENED!";
+				exit(0);
+			}
+		};
+		~oFile() {
+			close();
+		};
+	};
+
+	class iFile : public std::ifstream
+	{
+
+		iFile(const iFile&) = delete;
+		const iFile& operator = (const iFile& of) = delete;
+
+	public:
+		iFile(const std::string& path) : std::ifstream(path) {
+			if (!is_open()) {
+				std::cout << "FILE " + path + " DOES NOT OPENED!";
+				exit(0);
+			}
+		};
+		~iFile() {
+			close();
+		};
+
+		const std::string readAll() {
+			std::string data;
+			char ch;
+			while (!eof()) {
+				ch = get();
+				data += ch;
+			}
+			
+			return data;
+		}
+	};
+
+
+	template<class T>
+	void writeToOutputTxt(const T& data) {
+		oFile("output.txt") << data;
+	}
+
+}
+
+
+---------------Good.h--------------- 
+#pragma once
+
+class Good
+{
+	const unsigned int m_price;
+	const float m_value;
+    const float m_deltaValue;
+
+    const Good& operator = (const Good& g) = delete;
+public:
+    Good(unsigned int price, float value, float deltaValue) : m_price(price), m_value(value), m_deltaValue(deltaValue) {}
+    Good(const Good& g) : m_price(g.m_price), m_value(g.m_value), m_deltaValue(g.m_deltaValue) {}
+    
+
+    float valueForIndex(unsigned int index) const;
+    unsigned int price() const;
+};
+
+inline float Good::valueForIndex(unsigned int index) const
+{
+    float value = m_value - index * m_deltaValue;
+    return value < 0 ? 0 : value;
+}
+
+inline unsigned int Good::price() const
+{
+    return m_price;
+}
+---------------IndifferenceCurve.h--------------- 
+#pragma once
+
+#include "Point.h"
+#include "File.h"
+#include "Good.h"
+#include <vector>
+
+class IndifferenceCurve
+{
+	std::vector<Point> points;
+
+	const Good good1;
+	const Good good2;
+	const unsigned int budget;
+	const float epsilon;
+	
+	const unsigned int maxGoods1;
+	const unsigned int maxGoods2;
+
+	IndifferenceCurve(const IndifferenceCurve&) = delete;
+	const IndifferenceCurve& operator = (const IndifferenceCurve&) = delete;
+
+	void valuesSums(std::vector<float>& out, const Good& good, const unsigned int maxGoods);
+	void calculatePoints(const std::vector<float>& valuesSumsGood1, const std::vector<float>& valuesSumsGood2);
+	void calculate();
+
+public:
+	IndifferenceCurve(unsigned int budget, Good& good1, Good& good2, float epsilon) :
+		budget(budget), good1(good1), good2(good2), epsilon(epsilon), 
+		maxGoods1(budget / good1.price()), maxGoods2(budget / good2.price()) {
+		calculate();
+	}
+
+	std::vector<Point>& getPoints();
+	friend std::ostream& operator << (std::ostream& os, const IndifferenceCurve& c);
+};
+
+
+inline std::vector<Point>& IndifferenceCurve::getPoints() {
+	return points;
+}
+
+---------------IndifferenceCurve.cpp--------------- 
+#include "IndifferenceCurve.h"
+
+void IndifferenceCurve::valuesSums(std::vector<float>& out, const Good& good, const unsigned int maxGoods)
+{
+    out.push_back(good.valueForIndex(0));
+    for (int i = 1; i < maxGoods; i++) {
+        out.push_back(out.back() + good.valueForIndex(i));
+    }
+}
+
+void IndifferenceCurve::calculatePoints(const std::vector<float>& valuesSumsGood1, const std::vector<float>& valuesSumsGood2)
+{
+    float staticValue = 0.f;
+    if (valuesSumsGood1.back() > valuesSumsGood2.back()) {
+        staticValue = valuesSumsGood2.back();
+    }
+    else {
+        staticValue = valuesSumsGood1.back();
+    }
+
+    for (int i = 0; i < valuesSumsGood1.size() - 1; i++) {
+        for (int j = 0; j < valuesSumsGood2.size() - 1; j++) {
+            if (staticValue > valuesSumsGood1[i] + valuesSumsGood2[j] - epsilon && staticValue < valuesSumsGood1[i] + valuesSumsGood2[j] + epsilon) {
+                points.push_back(Point(i, j));
+            }
+        }
+    }
+}
+
+void IndifferenceCurve::calculate()
+{
+    std::vector<float> compilersValuesSums;
+    std::vector<float> linkersValuesSums;
+
+    valuesSums(compilersValuesSums, good1, maxGoods1);
+    valuesSums(linkersValuesSums, good2, maxGoods2);
+
+    calculatePoints(compilersValuesSums, linkersValuesSums);
+}
+
+std::ostream& operator<<(std::ostream& os, const IndifferenceCurve& c)
+{
+    os << "====================" << c.budget << "====================" << std::endl;
+    os << "MaxGoods1: " << c.maxGoods1 << " MaxGoods2: " << c.maxGoods2 << std::endl;
+    os << "BUDGET LINE x;y" << std::endl << Point(c.maxGoods1, 0) << std::endl << Point(0, c.maxGoods2) << std::endl;
+    os << "CURVE x;y" << std::endl;
+    for (auto& el : c.points) {
+        os << el << std::endl;
+    }
+    return os;
+}
+
+---------------Point.h--------------- 
+#pragma once
+#include <iostream>
+
+class Point {
+public:
+    float x;
+    float y;
+    Point() : x(0), y(0) {}
+    Point(float x, float y) : x(x), y(y) {}
+
+    friend std::ostream& operator << (std::ostream& os, const Point& p);
+};
+
+inline std::ostream& operator << (std::ostream& os, const Point& p) {
+    os << p.x << ";" << p.y;
+    return os;
+}
