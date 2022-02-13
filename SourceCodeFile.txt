@@ -1,51 +1,62 @@
 
 ---------------DemandCurve.h--------------- 
 #pragma once
+#include <iostream>
 #include <vector>
-#include "Point.h"
+#include <map>
 
 class DemandCurve
 {
-	std::vector<Point> points;
-	const int m_maxParam;
-	const int m_minParam;
-	const int m_epsilon;
-	const float m_demandCoefficientDelta;
+	std::vector<std::pair<unsigned int, unsigned int>> pricesAndDemand;
+	std::map<unsigned int, unsigned int> pricesAndCounters;
 
+	void calculatePricesAndCounters(const std::vector<unsigned int>& maxPrices);
+	void calculateDemand();
 
-	void calculate();
+	DemandCurve(const DemandCurve&) = delete;
+	const DemandCurve& operator = (const DemandCurve&) = delete;
 public:
-	DemandCurve(int maxParam, int minParam, float demandCoefficientDelta = 0.1f, int epsilon = 1);
+	DemandCurve(const std::vector<unsigned int>& maxPrices);
 
 	friend std::ostream& operator << (std::ostream& os, const DemandCurve& dc);
 };
 ---------------DemandCurve.cpp--------------- 
 #include "DemandCurve.h"
 
-void DemandCurve::calculate()
+void DemandCurve::calculatePricesAndCounters(const std::vector<unsigned int>& maxPrices)
 {
-	float demandCoefficient = 0.f;
-	float x = m_demandCoefficientDelta;
-	for (int y = m_maxParam - 1; y > m_minParam; y -= m_epsilon) {
-		demandCoefficient = (m_maxParam - y) * m_demandCoefficientDelta;
-		x = x + demandCoefficient;
-		points.push_back(Point(x, y));
+	for (auto maxPrice : maxPrices) {
+		if (pricesAndCounters.find(maxPrice) == pricesAndCounters.end()) {
+			pricesAndCounters.insert(std::make_pair(maxPrice, 1));
+		}
+		else {
+			pricesAndCounters.at(maxPrice)++;
+		}
 	}
 }
 
-DemandCurve::DemandCurve(int maxParam, int minParam, float demandCoefficientDelta, int epsilon) :
-	m_maxParam(maxParam), m_minParam(minParam),
-	m_demandCoefficientDelta(demandCoefficientDelta),
-	m_epsilon(epsilon) {
-	calculate();
+void DemandCurve::calculateDemand()
+{
+	unsigned int demand = 0;
+	for (auto it = --pricesAndCounters.end(); it != --pricesAndCounters.begin(); it--) {
+		demand += it->second;
+		pricesAndDemand.push_back(std::make_pair(it->first, demand));
+	}
+}
+
+DemandCurve::DemandCurve(const std::vector<unsigned int>& maxPrices) {
+	calculatePricesAndCounters(maxPrices);
+	calculateDemand();
 }
 
 std::ostream& operator << (std::ostream& os, const DemandCurve& dc) {
-	os << "DemandCurve from: " << dc.m_maxParam << " to: " << dc.m_minParam << std::endl;
-	os << "Delta: " << dc.m_demandCoefficientDelta << " Epsilon: " << dc.m_epsilon << std::endl;
-	os << "CURVE x;y" << std::endl;
-	for (auto& el : dc.points) {
-		os << el << std::endl;
+	os << "Price:" << std::endl;
+	for (auto& el : dc.pricesAndDemand) {
+		os << el.first << std::endl;
+	}
+	os << "Demand:" << std::endl;
+	for (auto& el : dc.pricesAndDemand) {
+		os << el.second << std::endl;
 	}
 	return os;
 }
@@ -75,7 +86,8 @@ namespace Files {
 		};
 	};
 
-	class iFile : public std::ifstream
+	//Input file
+	/*class iFile : public std::ifstream
 	{
 
 		iFile(const iFile&) = delete;
@@ -102,7 +114,7 @@ namespace Files {
 			
 			return data;
 		}
-	};
+	};*/
 
 
 	template<class T>
@@ -113,46 +125,32 @@ namespace Files {
 }
 
 
----------------Good.h--------------- 
-#pragma once
-
-class Good
-{
-	const unsigned int m_price;
-	const float m_value;
-    const float m_deltaValue;
-
-    const Good& operator = (const Good& g) = delete;
-public:
-    Good(unsigned int price, float value, float deltaValue) : m_price(price), m_value(value), m_deltaValue(deltaValue) {}
-    Good(const Good& g) : m_price(g.m_price), m_value(g.m_value), m_deltaValue(g.m_deltaValue) {}
-    
-
-    float valueForIndex(unsigned int index) const;
-    unsigned int price() const;
-};
-
-inline float Good::valueForIndex(unsigned int index) const
-{
-    float value = m_value - index * m_deltaValue;
-    return value < 0 ? 0 : value;
-}
-
-inline unsigned int Good::price() const
-{
-    return m_price;
-}
 ---------------IndifferenceCurve.h--------------- 
 #pragma once
-
-#include "Point.h"
-#include "File.h"
-#include "Good.h"
+#include <iostream>
 #include <vector>
 
 class IndifferenceCurve
 {
-	std::vector<Point> points;
+public:
+	class Good
+	{
+		const unsigned int m_price;
+		const float m_value;
+		const float m_deltaValue;
+
+		const Good& operator = (const Good& g) = delete;
+	public:
+		Good(unsigned int price, float value, float deltaValue) : m_price(price), m_value(value), m_deltaValue(deltaValue) {}
+		Good(const Good& g) : m_price(g.m_price), m_value(g.m_value), m_deltaValue(g.m_deltaValue) {}
+
+
+		float valueForIndex(unsigned int index) const;
+		unsigned int price() const;
+	};
+
+private:
+	std::vector<std::pair<unsigned int, unsigned int>> points;
 
 	const Good good1;
 	const Good good2;
@@ -176,14 +174,26 @@ public:
 		calculate();
 	}
 
-	std::vector<Point>& getPoints();
+	std::vector<std::pair<unsigned int, unsigned int>>& getPoints();
 	friend std::ostream& operator << (std::ostream& os, const IndifferenceCurve& c);
 };
 
+inline float IndifferenceCurve::Good::valueForIndex(unsigned int index) const
+{
+	float value = m_value - index * m_deltaValue;
+	return value < 0 ? 0 : value;
+}
 
-inline std::vector<Point>& IndifferenceCurve::getPoints() {
+inline unsigned int IndifferenceCurve::Good::price() const
+{
+	return m_price;
+}
+
+inline std::vector<std::pair<unsigned int, unsigned int>>& IndifferenceCurve::getPoints() {
 	return points;
 }
+
+
 
 ---------------IndifferenceCurve.cpp--------------- 
 #include "IndifferenceCurve.h"
@@ -209,7 +219,7 @@ void IndifferenceCurve::calculatePoints(const std::vector<float>& valuesSumsGood
     for (int i = 0; i < valuesSumsGood1.size() - 1; i++) {
         for (int j = 0; j < valuesSumsGood2.size() - 1; j++) {
             if (staticValue > valuesSumsGood1[i] + valuesSumsGood2[j] - epsilon && staticValue < valuesSumsGood1[i] + valuesSumsGood2[j] + epsilon) {
-                points.push_back(Point(i, j));
+                points.push_back(std::make_pair(i, j));
             }
         }
     }
@@ -228,31 +238,13 @@ void IndifferenceCurve::calculate()
 
 std::ostream& operator<<(std::ostream& os, const IndifferenceCurve& c)
 {
-    os << "====================" << c.budget << "====================" << std::endl;
-    os << "MaxGoods1: " << c.maxGoods1 << " MaxGoods2: " << c.maxGoods2 << std::endl;
-    os << "BUDGET LINE x;y" << std::endl << Point(c.maxGoods1, 0) << std::endl << Point(0, c.maxGoods2) << std::endl;
-    os << "CURVE x;y" << std::endl;
+    os << "Budget Line maxGoods1;0 (x;y)" << std::endl 
+        << c.maxGoods1 << ";0" << std::endl
+        << "Budget Line 0;maxGoods2 (x;y)" << std::endl
+        << "0;" << c.maxGoods2 << std::endl;
+    os << "Indifference Curve Good1;Good2 (x;y)" << std::endl;
     for (auto& el : c.points) {
-        os << el << std::endl;
+        os << el.first << ";" << el.second << std::endl;
     }
-    return os;
-}
-
----------------Point.h--------------- 
-#pragma once
-#include <iostream>
-
-class Point {
-public:
-    float x;
-    float y;
-    Point() : x(0), y(0) {}
-    Point(float x, float y) : x(x), y(y) {}
-
-    friend std::ostream& operator << (std::ostream& os, const Point& p);
-};
-
-inline std::ostream& operator << (std::ostream& os, const Point& p) {
-    os << p.x << ";" << p.y;
     return os;
 }

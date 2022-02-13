@@ -45,7 +45,7 @@
 *x64
 
 #Ignore output.txt
-*output.txt
+*.txt
 
 Skip to content
 Search or jump to…
